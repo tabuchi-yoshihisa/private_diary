@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
+from django.contrib.messages import constants as messages
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -23,18 +24,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = '=__zs!cicy2ar%%#5y+_ibku6@b4%wdmtc@$nb23vegsl1p#co'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = [os.environ.get('ALLOWED_HOSTS')]
+ALLOWED_HOSTS = []
 
-STATIC_ROOT = '/usr/share/nginx/html/static'
-MEDIA_ROOT = '/usr/share/nginx/html/media'
-
-#Amazon SES関連
-
-AWS_SES_ACCESS_KEY_ID=os.environ.get('AWS_SES_ACCESS_KEY_ID')
-AWS_SES_SECRET_ACCESS_KEY=os.environ.get('AWS_SES_SECRET_ACCESS_KEY')
-EMAIL_BACKEND='django_ses.SESBackend'
 
 # Application definition
 
@@ -45,8 +38,43 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'diary.apps.DiaryConfig'
+    'diary.apps.DiaryConfig',
+    'accounts.apps.AccountsConfig',
+    'django.contrib.sites',
+    'allauth',
+    'allauth.account',
+
+    'django_ses',
 ]
+
+SITE_ID = 1
+
+AUTHENTICATION_BACKENDS ={
+    'allauth.account.auth_backends.AuthenticationBackend',
+    #メールアドレス認証
+    'django.contrib.auth.backends.ModelBackend',
+    #管理サイト用ユーザ名認証
+}
+
+#メールアドレス認証に変更する
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_USERNAME_REQUIRED = False
+
+#サインアップにメールアドレス確認をはさむように設定
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_EMAIL_REQUIRED = True
+
+#ログイン/ログアウト後の遷移先
+LOGIN_REDIRECT_URL='diary:diary_list'
+ACCOUNT_LOGOUT_REDIRECT_URL='account_login'
+
+#ログアウトリンクのクリック一発でログアウトする設定
+ACCOUNT_LOGOUT_ON_GET = True
+# django-allauthが送信するメールの件名に自動付与される接頭辞をブランクにする設定
+ACCOUNT_EMAIL_SUBJECT_PREFIX = ''
+
+# デフォルトのメール送信元を設定
+DEFAULT_FROM_EMAIL = 'admin@example.com'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -147,18 +175,14 @@ LOGGING = {
         #diaryアプリケーションが利用するロガー
         'diary':{
             'handlers':['console'],
-            'level':'INFO',
+            'level':'DEBUG',
         },
     },
     'handlers':{
-        'file':{
-            'level': 'INFO',
-            'class': 'logging.handlers.TimedRotatingHandler',
-            'filename': os.path.join(BASE_DIR,'logs/django.log'),
-            'formatter': 'prod',
-            'when': 'D',
-            'interval': 1,
-            'backupCount': 7,
+        'console':{
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'dev'
         },
     },
 
@@ -178,3 +202,18 @@ LOGGING = {
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR,'static'),
 ]
+
+MESSAGE_TAGS = {
+    messages.ERROR: 'alert alert-danger',
+    messages.WARNING: 'alert alert-warning',
+    messages.SUCCESS: 'alert alert-success',
+    messages.INFO: 'alert alert-info',
+}
+
+AUTH_USER_MODEL = 'accounts.CustomUser'
+
+MEDIA_URL = '/media/'
+
+#バックアップバッチ用
+BACKUP_PATH = 'backup/'
+NUM_SAVED_BACKUP = 30
